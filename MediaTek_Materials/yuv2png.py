@@ -19,7 +19,6 @@ def convert(yuv_file, output_dir):
                 pixels[j,i] = int(y)
 
         converted_image.save(os.path.join(output_dir, '%03d.png' % frame_num), "png")
-
     f_y.close()
 
 if __name__ == "__main__":
