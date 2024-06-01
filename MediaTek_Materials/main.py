@@ -3,6 +3,7 @@ import os
 import numpy as np
 from PIL import Image
 from yuv2png import convert
+import cv2
 
 def load_frames_from_directory(directory, seq_len):
     frames = []
@@ -30,6 +31,50 @@ def motion_estimation(current_block, reference_frame, block_x, block_y, block_si
     
     return best_vector
 
+def affine_motion_estimation(current_block, reference_frame, block_x, block_y, block_size, search_range):
+    best_cost = float('inf')
+    best_params = None
+    
+    h, w = current_block.shape
+    current_points = np.array([[0, 0], [w-1, 0], [0, h-1], [w-1, h-1]], dtype=np.float32)
+    
+    for dy in range(-search_range, search_range + 1):
+        for dx in range(-search_range, search_range + 1):
+            ref_points = np.array([[block_x+dx, block_y+dy], 
+                                   [block_x+dx+w-1, block_y+dy], 
+                                   [block_x+dx, block_y+dy+h-1], 
+                                   [block_x+dx+w-1, block_y+dy+h-1]], dtype=np.float32)
+            M = cv2.getAffineTransform(current_points[:3], ref_points[:3])
+            transformed_block = cv2.warpAffine(reference_frame, M, (w, h))
+            cost = np.sum(np.abs(current_block - transformed_block))
+            if cost < best_cost:
+                best_cost = cost
+                best_params = M
+    
+    return best_params
+
+def perspective_motion_estimation(current_block, reference_frame, block_x, block_y, block_size, search_range):
+    best_cost = float('inf')
+    best_params = None
+    
+    h, w = current_block.shape
+    current_points = np.array([[0, 0], [w-1, 0], [0, h-1], [w-1, h-1]], dtype=np.float32)
+    
+    for dy in range(-search_range, search_range + 1):
+        for dx in range(-search_range, search_range + 1):
+            ref_points = np.array([[block_x+dx, block_y+dy], 
+                                   [block_x+dx+w-1, block_y+dy], 
+                                   [block_x+dx, block_y+dy+h-1], 
+                                   [block_x+dx+w-1, block_y+dy+h-1]], dtype=np.float32)
+            M = cv2.getPerspectiveTransform(current_points, ref_points)
+            transformed_block = cv2.warpPerspective(reference_frame, M, (w, h))
+            cost = np.sum(np.abs(current_block - transformed_block))
+            if cost < best_cost:
+                best_cost = cost
+                best_params = M
+    
+    return best_params
+
 def motion_compensation(frames, block_size, search_range):
     motion_vectors = []
     compensated_frames = [frames[0]]  # The first frame remains unchanged
@@ -44,12 +89,36 @@ def motion_compensation(frames, block_size, search_range):
         for y in range(0, h, block_size):
             for x in range(0, w, block_size):
                 current_block = current_frame[y:y+block_size, x:x+block_size]
+                
+                # Perform translational motion estimation
                 vector = motion_estimation(current_block, reference_frame, x, y, block_size, search_range)
-                frame_motion_vectors.append(vector)
-                ref_x = x + vector[0]
-                ref_y = y + vector[1]
-                predicted_frame[y:y+block_size, x:x+block_size] = reference_frame[ref_y:ref_y+block_size, ref_x:ref_x+block_size]
-
+                
+                # Perform affine motion estimation
+                affine_params = affine_motion_estimation(current_block, reference_frame, x, y, block_size, search_range)
+                
+                # Perform perspective motion estimation
+                perspective_params = perspective_motion_estimation(current_block, reference_frame, x, y, block_size, search_range)
+                
+                # Choose the best motion model based on cost
+                # This is a simplified cost comparison. You can improve it based on your criteria.
+                if affine_params is not None and perspective_params is not None:
+                    affine_cost = np.sum(np.abs(current_block - cv2.warpAffine(reference_frame, affine_params, (block_size, block_size))))
+                    perspective_cost = np.sum(np.abs(current_block - cv2.warpPerspective(reference_frame, perspective_params, (block_size, block_size))))
+                    
+                    if affine_cost < perspective_cost:
+                        frame_motion_vectors.append(('affine', affine_params))
+                        transformed_block = cv2.warpAffine(reference_frame, affine_params, (block_size, block_size))
+                    else:
+                        frame_motion_vectors.append(('perspective', perspective_params))
+                        transformed_block = cv2.warpPerspective(reference_frame, perspective_params, (block_size, block_size))
+                else:
+                    frame_motion_vectors.append(('translational', vector))
+                    ref_x = x + vector[0]
+                    ref_y = y + vector[1]
+                    transformed_block = reference_frame[ref_y:ref_y+block_size, ref_x:ref_x+block_size]
+                
+                predicted_frame[y:y+block_size, x:x+block_size] = transformed_block
+                
         motion_vectors.append(frame_motion_vectors)
         compensated_frames.append(predicted_frame)
     
