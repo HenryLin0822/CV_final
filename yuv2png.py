@@ -7,6 +7,7 @@ def convert(yuv_file, output_dir):
     w ,h = 3840, 2160
     seq_len = 129
     frame_size = int(3/2 * w * h)
+    frame = list()
     for frame_num in range(seq_len):
         converted_image = Image.new('L', (w, h))
         pixels = converted_image.load()
@@ -19,7 +20,9 @@ def convert(yuv_file, output_dir):
                 pixels[j,i] = int(y)
 
         converted_image.save(os.path.join(output_dir, '%03d.png' % frame_num), "png")
+        frame.append(converted_image)
     f_y.close()
+    return frame
 
 if __name__ == "__main__":
 
