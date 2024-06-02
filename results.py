@@ -33,7 +33,7 @@ def main(args):
     os.mkdir(os.path.join(save_path, "curr_comp_diff", ""))
 
     psnr_dict = {}
-    frames=read_frames_from_directory("./resources/frame", h=240, w=320)
+    frames=read_frames_from_directory("./resources/frame")
     hevc_b = hierarchical_b_structure()
     try:
         print("frame shape: {}".format(frames[0].shape))
@@ -53,17 +53,17 @@ def main(args):
             reference_r = frames[hevc_b[idx]['r']]
             current = frames[idx]
 
-            params_l = motion.global_motion_estimation(reference_l, current)
-            params_r = motion.global_motion_estimation(reference_r, current)
+            params_l = motion.global_motion_estimation(current,reference_l)
+            params_r = motion.global_motion_estimation(current,reference_r)
 
             model_motion_field = motion.get_motion_field_affine(
-                (int(reference_l.shape[0] / motion.BBME_BLOCK_SIZE), int(reference_l.shape[1] / motion.BBME_BLOCK_SIZE), 2), parameters=(params_l+params_r)/2
+                (int(current.shape[0] / motion.BBME_BLOCK_SIZE), int(current.shape[1] / motion.BBME_BLOCK_SIZE), 2), parameters=(params_l+params_r)/2
             )
 
 
-            shape = (reference_l.shape[0]//motion.BBME_BLOCK_SIZE, reference_l.shape[1]//motion.BBME_BLOCK_SIZE)
+            shape = (current.shape[0]//motion.BBME_BLOCK_SIZE, current.shape[1]//motion.BBME_BLOCK_SIZE)
             # compensate camera motion on reference frame
-            compensated = motion.compensate_frame(reference_l, model_motion_field)
+            compensated = motion.compensate_frame(current, model_motion_field)
         
             idx_name=str(idx)
             diff_curr_prev = (
@@ -86,7 +86,7 @@ def main(args):
             )
 
             # save motion model motion field
-            draw = draw_motion_field(reference_l, model_motion_field)
+            draw = draw_motion_field(current, model_motion_field)
             cv2.imwrite(
                 os.path.join(save_path, "model_motion_field", "")
                 + str(idx)
@@ -101,7 +101,7 @@ def main(args):
             os.path.join(save_path, "frames", "")
             + str(idx)
             + ".png",
-            reference_l,
+            current,
         )
 
         # save compensated
