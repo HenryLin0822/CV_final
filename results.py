@@ -33,7 +33,7 @@ def main(args):
     os.mkdir(os.path.join(save_path, "curr_comp_diff", ""))
 
     psnr_dict = {}
-    frames=read_frames_from_directory("./resources/frame")
+    frames=read_frames_from_directory("./resources/frame", h=240, w=320)
     hevc_b = hierarchical_b_structure()
     try:
         print("frame shape: {}".format(frames[0].shape))
