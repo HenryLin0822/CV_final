@@ -7,10 +7,10 @@ from bbme import get_motion_field
 import itertools
 
 BBME_BLOCK_SIZE = 16
-MOTION_VECTOR_ERROR_THRESHOLD_PERCENTAGE = .3
+MOTION_VECTOR_ERROR_THRESHOLD_PERCENTAGE = 0.3
 
 
-def dense_motion_estimation(previous, current):
+def dense_motion_estimation(reference, current):
     """Given a couple of frames, estimates the dense motion field.
 
     The dense motion field corresponds to a matrix of size the # of blocks
@@ -18,25 +18,25 @@ def dense_motion_estimation(previous, current):
     contains two values, the shift in x and y directions.
 
     Args:
-        previous (np.ndarray): previous frame of the video.
+        reference (np.ndarray): reference frame of the video.
         current (np.ndarray): current frame of the video.
 
     Returns:
         motion_field (np.ndarray): estimated dense motion field.
     """
     motion_field = get_motion_field(
-        previous, current, block_size=2, searching_procedure=3
+        reference, current, block_size=2, searching_procedure=3
     )
     return motion_field
 
 
-def best_affine_parameters(previous, current):
+def best_affine_parameters(reference, current):
     """Given two frames, computes the parameters that optimize the affine model for global motion estimation between the two frames.
     These parameters are computed minimizing a measure of error on the difference between motion vectors computed via BBME and motion vectors obtained with the affine model.
     For theoretical explanation refer to [Yao Wang, Jôrn Ostermann and Ya-Qin Zhang, Video Processing and Communications 1st Edition].
 
     Args:
-        previous (np.ndarray): previous frame.
+        reference (np.ndarray): reference frame.
         current (np.ndarray): current frame.
 
     Returns:
@@ -44,14 +44,14 @@ def best_affine_parameters(previous, current):
     """
     # get ground truth motion field
     gt_motion_field = get_motion_field(
-        previous=previous,
+        reference=reference,
         current=current,
         block_size=BBME_BLOCK_SIZE,
         searching_procedure=3,
     )
     first_part = np.zeros(shape=[3, 3], dtype=np.float64)
     second_part = np.zeros(shape=[3, 1], dtype=np.float64)
-    w = 1 / (previous.shape[0] * previous.shape[1])
+    w = 1 / (reference.shape[0] * reference.shape[1])
     for i in range(gt_motion_field.shape[0]):
         for j in range(gt_motion_field.shape[1]):
             x = i * 4
@@ -68,7 +68,7 @@ def best_affine_parameters(previous, current):
 
     first_part = np.zeros(shape=[3, 3], dtype=np.float64)
     second_part = np.zeros(shape=[3, 1], dtype=np.float64)
-    w = 1 / (previous.shape[0] * previous.shape[1])
+    w = 1 / (reference.shape[0] * reference.shape[1])
     for i in range(gt_motion_field.shape[0]):
         for j in range(gt_motion_field.shape[1]):
             x = i * 4
@@ -106,21 +106,21 @@ def affine_model(x, y, parameters):
 
 
 # @timer
-def global_motion_estimation(previous, current):
+def global_motion_estimation(reference, current):
     """Method to perform the global motion estimation.
     - uses affine model to model global motion
     - uses robust estimation removing outliers from global motion estimation
     - uses a hierarchical approach to make the estimation more robust
 
     Args:
-        previous (np.ndarray): the frame at time t-1.
+        reference (np.ndarray): the frame at time t-1.
         current (np.ndarray): the frame at time t.
 
     Returns:
-        np.ndarray: The list of parameters of the motion model that describes the global motion between previous and current.
+        np.ndarray: The list of parameters of the motion model that describes the global motion between reference and current.
     """
     # create the gaussian pyramids of the frames
-    prev_pyr = get_pyramids(previous)
+    prev_pyr = get_pyramids(reference)
     curr_pyr = get_pyramids(current)
     
     # first (coarse) level estimation
@@ -157,18 +157,18 @@ def get_motion_field_affine(shape, parameters):
     return motion_field
 
 
-def first_parameter_estimation(previous, current):
+def first_parameter_estimation(reference, current):
     """Computes the parameters for the perspective motion model for the first iteration.
 
     Parameters:
-        previous:   previous frame.
+        reference:   reference frame.
         current:    current frame.
 
     Returns:
         np.ndarray: first estimation of the parameters, obtained with dense motion estimation.
     """
     # estimate the dense motion field
-    dense_motion_field = dense_motion_estimation(previous, current)
+    dense_motion_field = dense_motion_estimation(reference, current)
     parameters = compute_first_parameters(dense_motion_field)
     return parameters
 
@@ -178,7 +178,7 @@ def compute_first_parameters(dense_motion_field):
     For the first estimation only transition is taken into account, therefore only parameters a0 and b0 are computed.
 
     Args:
-        dense_motion_field (np.ndarray): ndarray with shape[-1]=2; the touples in the last dimension represent the shift of the pixel from previous to current frame. It is computed via dense motion field estimation.
+        dense_motion_field (np.ndarray): ndarray with shape[-1]=2; the touples in the last dimension represent the shift of the pixel from reference to current frame. It is computed via dense motion field estimation.
 
     Returns:
         np.ndarray: the list of parameters of the motion model.
@@ -207,14 +207,14 @@ def parameter_projection(parameters):
     return parameters
 
 
-def best_affine_parameters_robust(previous, current, old_parameters):
+def best_affine_parameters_robust(reference, current, old_parameters):
     """Robust version of the method to compute parameters for the affine model.
     1. estimates motion field with old parameters
     2. eliminates outliers
     3. gets new parameters without outliers
 
     Args:
-        previous (np.ndarray): previous frame.
+        reference (np.ndarray): reference frame.
         current (np.ndarray): current frame.
 
     Returns:
@@ -222,7 +222,7 @@ def best_affine_parameters_robust(previous, current, old_parameters):
     """
     # get ground truth motion field
     gt_motion_field = get_motion_field(
-        previous=previous,
+        reference=reference,
         current=current,
         block_size=BBME_BLOCK_SIZE,
         searching_procedure=3,
@@ -251,7 +251,7 @@ def best_affine_parameters_robust(previous, current, old_parameters):
     # use mask to avoid computing on outliers
     first_part = np.zeros(shape=[3, 3], dtype=np.float64)
     second_part = np.zeros(shape=[3, 1], dtype=np.float64)
-    w = 1 / (previous.shape[0] * previous.shape[1])
+    w = 1 / (reference.shape[0] * reference.shape[1])
     for i in range(gt_motion_field.shape[0]):
         for j in range(gt_motion_field.shape[1]):
             if not outlier[i,j]:
@@ -269,7 +269,7 @@ def best_affine_parameters_robust(previous, current, old_parameters):
 
     first_part = np.zeros(shape=[3, 3], dtype=np.float64)
     second_part = np.zeros(shape=[3, 1], dtype=np.float64)
-    w = 1 / (previous.shape[0] * previous.shape[1])
+    w = 1 / (reference.shape[0] * reference.shape[1])
     for i in range(gt_motion_field.shape[0]):
         for j in range(gt_motion_field.shape[1]):
             if not outlier[i,j]:
@@ -325,21 +325,21 @@ def compensate_frame(frame, motion_field):
     return compensated
 
 
-def motion_compensation(previous, current):
-    """Computes the compensated frame given the previous and the current frames.
+def motion_compensation(reference, current):
+    """Computes the compensated frame given the reference and the current frames.
 
     Args:
-        previous (np.ndarray): previous frame.
+        reference (np.ndarray): reference frame.
         current (np.ndarray): current frame.
 
     Returns:
-        np.ndarray: previous frame compensated w.r.t. the global motion estimated within the two frames.
+        np.ndarray: reference frame compensated w.r.t. the global motion estimated within the two frames.
     """
     # parameters of the affine model
-    parameters = global_motion_estimation(previous, current)
-    shape = (previous.shape[0]//BBME_BLOCK_SIZE, previous.shape[1]//BBME_BLOCK_SIZE)
+    parameters = global_motion_estimation(reference, current)
+    shape = (reference.shape[0]//BBME_BLOCK_SIZE, reference.shape[1]//BBME_BLOCK_SIZE)
     # motion field due to global motion
     motion_field = get_motion_field_affine(shape, parameters)
-    # compensate camera motion on previous frame
-    compensated = compensate_frame(previous, motion_field)
+    # compensate camera motion on reference frame
+    compensated = compensate_frame(reference, motion_field)
     return compensated

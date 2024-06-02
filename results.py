@@ -1,4 +1,4 @@
-from utils import get_video_frames, draw_motion_field, PSNR, read_frames_from_directory
+from utils import get_video_frames, draw_motion_field, PSNR, read_frames_from_directory, hierarchical_b_structure, convert_png_to_mp4
 import motion as motion
 from json import dump
 import numpy as np
@@ -33,83 +33,96 @@ def main(args):
     os.mkdir(os.path.join(save_path, "curr_comp_diff", ""))
 
     psnr_dict = {}
-    frames=read_frames_from_directory("./resources/frame", 240, 320)
+    frames=read_frames_from_directory("./resources/frame", h=240, w=320)
+    hevc_b = hierarchical_b_structure()
     try:
         print("frame shape: {}".format(frames[0].shape))
     except:
         raise Exception("Error reading video file: check the name of the video!")
-    for idx in range(FRAME_DISTANCE, len(frames)):
-
+    for idx in range(len(frames)):
         j = (idx + 1) / len(frames)
         print("[%-20s] %d/%d frames" % ("=" * int(20 * j), idx, len(frames)))
+        # get reference, current and compensated
+        if hevc_b[idx]['t'] =='I':
+           reference_l = frames[idx]
+           reference_r = frames[idx]
+           current = frames[idx]
+           compensated = frames[idx]
+        else:
+            reference_l = frames[hevc_b[idx]['l']]
+            reference_r = frames[hevc_b[idx]['r']]
+            current = frames[idx]
 
-        # get previous, current and compensated
-        previous = frames[idx - FRAME_DISTANCE]
-        current = frames[idx]
+            params_l = motion.global_motion_estimation(reference_l, current)
+            params_r = motion.global_motion_estimation(reference_r, current)
 
-        params = motion.global_motion_estimation(previous, current)
-
-        model_motion_field = motion.get_motion_field_affine(
-            (int(previous.shape[0] / motion.BBME_BLOCK_SIZE), int(previous.shape[1] / motion.BBME_BLOCK_SIZE), 2), parameters=params
-        )
+            model_motion_field = motion.get_motion_field_affine(
+                (int(reference_l.shape[0] / motion.BBME_BLOCK_SIZE), int(reference_l.shape[1] / motion.BBME_BLOCK_SIZE), 2), parameters=(params_l+params_r)/2
+            )
 
 
-        shape = (previous.shape[0]//motion.BBME_BLOCK_SIZE, previous.shape[1]//motion.BBME_BLOCK_SIZE)
-        # compensate camera motion on previous frame
-        compensated = motion.compensate_frame(previous, model_motion_field)
+            shape = (reference_l.shape[0]//motion.BBME_BLOCK_SIZE, reference_l.shape[1]//motion.BBME_BLOCK_SIZE)
+            # compensate camera motion on reference frame
+            compensated = motion.compensate_frame(reference_l, model_motion_field)
+        
+            idx_name=str(idx)
+            diff_curr_prev = (
+                np.absolute(current.astype("int") - reference_l.astype("int"))
+            ).astype("uint8")
+            diff_curr_comp = (
+                np.absolute(current.astype("int") - compensated.astype("int"))
+            ).astype("uint8")
+            cv2.imwrite(
+                os.path.join(save_path, "curr_prev_diff", "")
+                + str(idx)
+                + ".png",
+                diff_curr_prev,
+            )
+            cv2.imwrite(
+                os.path.join(save_path, "curr_comp_diff", "")
+                + str(idx)
+                + ".png",
+                diff_curr_comp,
+            )
+
+            # save motion model motion field
+            draw = draw_motion_field(reference_l, model_motion_field)
+            cv2.imwrite(
+                os.path.join(save_path, "model_motion_field", "")
+                + str(idx)
+                + ".png",
+                draw,
+            )
 
 
         idx_name = str(idx)
         # save frames
         cv2.imwrite(
             os.path.join(save_path, "frames", "")
-            + str(idx-5)
+            + str(idx)
             + ".png",
-            previous,
+            reference_l,
         )
 
         # save compensated
         cv2.imwrite(
             os.path.join(save_path, "compensated", "")
-            + str(idx-5)
+            + str(idx)
             + ".png",
             compensated,
         )
 
         # save differences
-        diff_curr_prev = (
-            np.absolute(current.astype("int") - previous.astype("int"))
-        ).astype("uint8")
-        diff_curr_comp = (
-            np.absolute(current.astype("int") - compensated.astype("int"))
-        ).astype("uint8")
-        cv2.imwrite(
-            os.path.join(save_path, "curr_prev_diff", "")
-            + str(idx)
-            + ".png",
-            diff_curr_prev,
-        )
-        cv2.imwrite(
-            os.path.join(save_path, "curr_comp_diff", "")
-            + str(idx)
-            + ".png",
-            diff_curr_comp,
-        )
-
-        # save motion model motion field
-        draw = draw_motion_field(previous, model_motion_field)
-        cv2.imwrite(
-            os.path.join(save_path, "model_motion_field", "")
-            + str(idx)
-            + ".png",
-            draw,
-        )
+        
 
         ## compute PSNR
         psnr = PSNR(current, compensated)
         psnr_dict[idx_name] = str(psnr)
         with open(save_path + "psnr_records.json", "w") as outfile:
             dump(psnr_dict, outfile)
+        
+    convert_png_to_mp4('./results/DaylightRoad2_27.yuv/compensated', 'output.mp4')
+    convert_png_to_mp4('./results/DaylightRoad2_27.yuv/frames', 'gt_output.mp4') 
 
 if __name__ == "__main__":
     """Once set the video path and save path creates a lot of data for your report. Namely, it saves frames, compensated frames, frame differences and estimations of global motion.

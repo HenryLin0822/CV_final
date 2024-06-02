@@ -11,15 +11,15 @@ from utils import draw_motion_field, get_video_frames, get_pyramids, read_frames
 
 
 def get_motion_field(
-    previous,
+    reference,
     current,
     block_size=4,
     search_window=2,
     searching_procedure=1,
     pnorm_distance=1,
 ) -> np.ndarray:
-    height = previous.shape[0]
-    width = previous.shape[1]
+    height = reference.shape[0]
+    width = reference.shape[1]
 
     motion_field = np.zeros(
         (int(height / block_size), int(width / block_size), 2), dtype=np.int32
@@ -27,7 +27,7 @@ def get_motion_field(
 
     search = searching_procedures[searching_procedure]
     motion_field = search(
-        previous,
+        reference,
         current,
         motion_field,
         height,
@@ -104,7 +104,7 @@ def compute_current_target_block_corners(br, bl, wr, wc, bs):
 
 
 def exhaustive_search(
-    previous,
+    reference,
     current,
     mf,
     height,
@@ -118,7 +118,7 @@ def exhaustive_search(
     Computes the motion field with the Exhaustive BBME algorithm
 
     Args:
-        previous (np.ndarray): previous frame
+        reference (np.ndarray): reference frame
         current (np.ndarray): current frame
         mf (np.ndarray): motion field to return
         height (int): rows of the frame
@@ -136,7 +136,7 @@ def exhaustive_search(
         range(0, width - (block_size - 1), block_size),
     ):
 
-        anchor_block = previous[
+        anchor_block = reference[
             block_row : block_row + block_size, block_col : block_col + block_size
         ]
 
@@ -181,7 +181,7 @@ def exhaustive_search(
 
 
 def threestep_search(
-    previous,
+    reference,
     current,
     mf,
     height,
@@ -195,7 +195,7 @@ def threestep_search(
     Computes the motion field with the three step search BBME algorithm
 
     Args:
-        previous (np.ndarray): previous frame
+        reference (np.ndarray): reference frame
         current (np.ndarray): current frame
         mf (np.ndarray): motion field to compute
         height (int): rows of the frame
@@ -219,7 +219,7 @@ def threestep_search(
         range(0, width - (block_size - 1), block_size),
     ):
 
-        anchor_block = previous[
+        anchor_block = reference[
             block_row : block_row + block_size, block_col : block_col + block_size
         ]
 
@@ -343,14 +343,14 @@ def threestep_search(
 
 
 def twodlog_search(
-    previous, current, mf, height, width, pnorm_function, block_size=4, search_window=12
+    reference, current, mf, height, width, pnorm_function, block_size=4, search_window=12
 ):
     """
     twodlog_search
     Computes the motion field with the 2D log search BBME algorithm
 
     Args:
-        previous (np.ndarray): previous frame
+        reference (np.ndarray): reference frame
         current (np.ndarray): current frame
         mf (np.ndarray): motion field to compute
         height (int): rows of the frame
@@ -372,7 +372,7 @@ def twodlog_search(
         dx, dy = 0, 0
         step_size = search_window
 
-        anchor_block = previous[
+        anchor_block = reference[
             block_row : block_row + block_size, block_col : block_col + block_size
         ]
 
@@ -435,7 +435,7 @@ def twodlog_search(
 
 
 def diamond_search(
-    previous,
+    reference,
     current,
     mf,
     height,
@@ -449,7 +449,7 @@ def diamond_search(
     Computes the motion field with the diamond search BBME algorithm
 
     Args:
-        previous (np.ndarray): previous frame
+        reference (np.ndarray): reference frame
         current (np.ndarray): current frame
         mf (np.ndarray): motion field to compute
         height (int): rows of the frame
@@ -487,7 +487,7 @@ def diamond_search(
     ):
         # iterating over all image positions
 
-        anchor_block = previous[row : row + block_size, col : col + block_size]
+        anchor_block = reference[row : row + block_size, col : col + block_size]
         match_position = (row, col)
 
         # large diamond search
@@ -548,7 +548,7 @@ def rescale_motion_field(motion_field, scale=2):
 
 
 def hierarchical_wrapper(
-    previous,
+    reference,
     current,
     block_size=10,
     search_window=4,
@@ -558,7 +558,7 @@ def hierarchical_wrapper(
     Computes the motion field with the threestep search in a hierarchical fashion.
 
     Args:
-        previous (np.ndarray): previous frame.
+        reference (np.ndarray): reference frame.
         current (np.ndarray): current frame.
         block_size (int, optional): size of each block (in pixels).
         search_window (int, optional): size of the search window.
@@ -567,22 +567,22 @@ def hierarchical_wrapper(
         nd.ndarray: motion field.
     """
     # compute pyramids from two frames
-    previous_pyr = get_pyramids(previous, levels=3)
+    reference_pyr = get_pyramids(reference, levels=3)
     current_pyr = get_pyramids(current, levels=3)
 
     # get first estimation for motion filed
     motion_field = get_motion_field(
-        previous_pyr[0],
+        reference_pyr[0],
         current_pyr[0],
         block_size=block_size,
         searching_procedure=searching_procedure,
         search_window=search_window,
     )
 
-    for level in range(1, len(previous_pyr)):
-        prev = previous_pyr[level]
+    for level in range(1, len(reference_pyr)):
+        prev = reference_pyr[level]
         curr = current_pyr[level]
-        # rescale motion field from previous level
+        # rescale motion field from reference level
         motion_field = rescale_motion_field(motion_field, scale=2)
         motion_field
         # get current level motion filed
@@ -618,18 +618,18 @@ searching_procedures = [
 def main(args):
     ##frames = convert(args.path, "./resources/frame/")
     frames=read_frames_from_directory("./resources/frame")
-    previous = frames[args.fi - 3]
+    reference = frames[args.fi - 3]
     current = frames[args.fi]
 
     motion_field = get_motion_field(
-        previous,
+        reference,
         current,
         block_size=args.block_size,
         searching_procedure=args.searching_procedure,
         search_window=args.search_window,
     )
     motion_field_hierarchical = hierarchical_wrapper(
-        previous,
+        reference,
         current,
         block_size=args.block_size,
         search_window=args.search_window,
@@ -637,13 +637,13 @@ def main(args):
     )
     # print(motion_field)
 
-    # draw = draw_motion_field(previous, motion_field_hierarchical)
+    # draw = draw_motion_field(reference, motion_field_hierarchical)
     # cv2.imwrite(os.path.join("resources", "images", "motion_field_hierarchical.png"), draw)
-    # draw = draw_motion_field(previous, motion_field)
+    # draw = draw_motion_field(reference, motion_field)
     # cv2.imwrite(os.path.join("resources", "images", "motion_field_threestep.png"), draw)
 
     draw = draw_motion_field(current, motion_field)
-    draw_h = draw_motion_field(previous, motion_field_hierarchical)
+    draw_h = draw_motion_field(reference, motion_field_hierarchical)
     cv2.imwrite(os.path.join('resources', 'images', f'{args.searching_procedure}-res.png'), draw)
     cv2.imwrite(os.path.join('resources', 'images', f'{args.searching_procedure}h-res.png'), draw_h)
     # cv2.imshow("motionf field", draw)
