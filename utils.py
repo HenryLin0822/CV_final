@@ -167,15 +167,18 @@ def some_data(psnr_path: str) -> None:
 
 def read_frames_from_directory(directory_path, h=2160, w=3840):
     frames = []
-    for filename in os.listdir(directory_path):
-        if filename.endswith(".png"):
-            img_path = os.path.join(directory_path, filename)
+    for i in range(1000):  # Assuming a maximum of 1000 frames
+        filename = f"{i:03d}.png"  # Format the filename with leading zeros
+        img_path = os.path.join(directory_path, filename)
+        if os.path.exists(img_path):
             frame = cv2.imread(img_path)
             frame = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
             mid_h = frame.shape[0] // 2 - h // 2
             mid_w = frame.shape[1] // 2 - w // 2
             cropped_frame = frame[mid_h:mid_h+h, mid_w:mid_w+w]
             frames.append(cropped_frame)
+        else:
+            break  # Exit loop if file doesn't exist
     return frames
 
 def hierarchical_b_structure():
@@ -214,7 +217,8 @@ def hierarchical_b_structure():
 
 
 def convert_png_to_mp4(png_folder, output_file):
-    subprocess.call(['ffmpeg', '-framerate', '5', '-i', f'{png_folder}/%d.png', '-c:v', 'libx264', '-pix_fmt', 'yuv420p', output_file])
+    subprocess.call(['ffmpeg', '-framerate', '5', '-i', f'{png_folder}/%03d.png', '-c:v', 'libx264', '-pix_fmt', 'yuv420p', output_file])
+    ## %d ->%03d for file name 000 001 002...
 
 
 

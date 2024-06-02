@@ -33,7 +33,7 @@ def main(args):
     os.mkdir(os.path.join(save_path, "curr_comp_diff", ""))
 
     psnr_dict = {}
-    frames=read_frames_from_directory("./resources/frame", h=240, w=320)
+    frames=read_frames_from_directory("./resources/frame", h=700, w=320)
     hevc_b = hierarchical_b_structure()
     try:
         print("frame shape: {}".format(frames[0].shape))
@@ -44,6 +44,7 @@ def main(args):
         print("[%-20s] %d/%d frames" % ("=" * int(20 * j), idx, len(frames)))
         # get reference, current and compensated
         if hevc_b[idx]['t'] =='I':
+           print(idx)
            reference_l = frames[idx]
            reference_r = frames[idx]
            current = frames[idx]
@@ -65,7 +66,7 @@ def main(args):
             # compensate camera motion on reference frame
             compensated = motion.compensate_frame(current, model_motion_field)
         
-            idx_name=str(idx)
+            idx_name=str(idx).zfill(3)
             diff_curr_prev = (
                 np.absolute(current.astype("int") - reference_l.astype("int"))
             ).astype("uint8")
@@ -74,13 +75,13 @@ def main(args):
             ).astype("uint8")
             cv2.imwrite(
                 os.path.join(save_path, "curr_prev_diff", "")
-                + str(idx)
+                + str(idx).zfill(3)
                 + ".png",
                 diff_curr_prev,
             )
             cv2.imwrite(
                 os.path.join(save_path, "curr_comp_diff", "")
-                + str(idx)
+                + str(idx).zfill(3)
                 + ".png",
                 diff_curr_comp,
             )
@@ -89,7 +90,7 @@ def main(args):
             draw = draw_motion_field(current, model_motion_field)
             cv2.imwrite(
                 os.path.join(save_path, "model_motion_field", "")
-                + str(idx)
+                + str(idx).zfill(3)
                 + ".png",
                 draw,
             )
@@ -99,7 +100,7 @@ def main(args):
         # save frames
         cv2.imwrite(
             os.path.join(save_path, "frames", "")
-            + str(idx)
+            + str(idx).zfill(3)
             + ".png",
             current,
         )
@@ -107,7 +108,7 @@ def main(args):
         # save compensated
         cv2.imwrite(
             os.path.join(save_path, "compensated", "")
-            + str(idx)
+            + str(idx).zfill(3)
             + ".png",
             compensated,
         )
