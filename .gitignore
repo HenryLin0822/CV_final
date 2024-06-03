@@ -3,3 +3,7 @@
 /venv/*
 /*.mp4
 /outlier.txt
+/src/*
+./result/*
+./DaylightRoad2_27.yuv
+./__pycache__/*

@@ -178,7 +178,7 @@ def read_frames_from_directory(directory_path, h=2160, w=3840):
             cropped_frame = frame[mid_h:mid_h+h, mid_w:mid_w+w]
             frames.append(cropped_frame)
         else:
-            break  # Exit loop if file doesn't exist
+            break  # Exit loop if file doesn't exist   
     return frames
 
 def hierarchical_b_structure():
@@ -211,6 +211,7 @@ def hierarchical_b_structure():
         add_references(start, end, hierarchical_structure)
     for idx in predefined_skipped_frames:
         hierarchical_structure.append({'curr': idx, 'l': None, 'r': None, 't': 'I'})
+    print(hierarchical_structure)
     hierarchical_structure.sort(key=lambda x: x['curr'])
     return hierarchical_structure
 

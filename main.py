@@ -17,7 +17,6 @@ def load_frames_from_directory(directory, seq_len):
 def motion_estimation(current_block, reference_frame, block_x, block_y, block_size, search_range):
     best_cost = float('inf')
     best_vector = (0, 0)
-    
     for dy in range(-search_range, search_range + 1):
         for dx in range(-search_range, search_range + 1):
             ref_x = block_x + dx
