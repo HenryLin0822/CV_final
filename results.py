@@ -87,7 +87,6 @@ def main(args):
         print("[%-20s] %d/%d frames" % ("=" * int(20 * j), idx, len(frames)))
         # get reference, current and compensated
         if hevc_b[idx]['t'] =='I':
-           print(idx)
            reference_l = frames[idx]
            reference_r = frames[idx]
            current = frames[idx]
@@ -100,20 +99,22 @@ def main(args):
             params_l = motion.global_motion_estimation(current,reference_l)
             # print(params_l)
             params_r = motion.global_motion_estimation(current,reference_r)
-            # print(params_r)
-            print((params_l+params_r)/2)
-            l_model_motion_field = motion.get_motion_field_affine(
+
+            model_motion_field_l = motion.get_motion_field_affine(
                 (int(current.shape[0] / motion.BBME_BLOCK_SIZE), int(current.shape[1] / motion.BBME_BLOCK_SIZE), 2), parameters=(params_l)
+            )
+            model_motion_field_r = motion.get_motion_field_affine(
+                (int(current.shape[0] / motion.BBME_BLOCK_SIZE), int(current.shape[1] / motion.BBME_BLOCK_SIZE), 2), parameters=(params_r)
             )
             r_model_motion_field = motion.get_motion_field_affine((int(current.shape[0] / motion.BBME_BLOCK_SIZE), int(current.shape[1] / motion.BBME_BLOCK_SIZE), 2), parameters=(params_r))
 
 
             shape = (current.shape[0]//motion.BBME_BLOCK_SIZE, current.shape[1]//motion.BBME_BLOCK_SIZE)
             # compensate camera motion on reference frame
-            compensated_l = motion.compensate_frame(reference_l, l_model_motion_field)
-            compensated_r = motion.compensate_frame(reference_r, r_model_motion_field)
-            compensated=(compensated_l+compensated_r)/2
-            
+            compensated_l = motion.compensate_frame(reference_l, model_motion_field_l)
+            compensated_r = motion.compensate_frame(reference_r, model_motion_field_r)
+            compensated = (compensated_l +  compensated_r) //2
+        
             idx_name=str(idx).zfill(3)
             mse_scores=calculate_block_mse(current,compensated)
             selected_blocks=select_top_blocks(mse_scores,current.shape[0]//16 *current.shape[1] //16)
@@ -138,13 +139,15 @@ def main(args):
             )
 
             # save motion model motion field
-            # draw = draw_motion_field(current, model_motion_field)
-            # cv2.imwrite(
-            #     os.path.join(save_path, "model_motion_field", "")
-            #     + str(idx).zfill(3)
-            #     + ".png",
-            #     draw,
-            # )
+            '''
+            draw = draw_motion_field(current, model_motion_field)
+            cv2.imwrite(
+                os.path.join(save_path, "model_motion_field", "")
+                + str(idx).zfill(3)
+                + ".png",
+                draw,
+            )
+            '''
 
 
         idx_name = str(idx)
@@ -173,8 +176,8 @@ def main(args):
         with open(save_path + "psnr_records.json", "w") as outfile:
             dump(psnr_dict, outfile)
         
-    # convert_png_to_mp4('./results/DaylightRoad2_27.yuv/compensated', 'output.mp4')
-    # convert_png_to_mp4('./results/DaylightRoad2_27.yuv/frames', 'gt_output.mp4') 
+    convert_png_to_mp4(save_path+'/compensated', 'output.mp4')
+    convert_png_to_mp4(save_path+'/frames', 'gt_output.mp4') 
 
 if __name__ == "__main__":
     """Once set the video path and save path creates a lot of data for your report. Namely, it saves frames, compensated frames, frame differences and estimations of global motion.
