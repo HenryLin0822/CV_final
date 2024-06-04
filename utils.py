@@ -111,6 +111,7 @@ def PSNR(original, noisy):
         float: the measure of PSNR
     """
     mse = np.mean((original.astype("int") - noisy.astype("int")) ** 2)
+    se= (original.astype("int") - noisy.astype("int")) ** 2 
     if mse == 0:  # there is no noise
         return -1
     max_value = 255.0
