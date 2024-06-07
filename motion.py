@@ -8,7 +8,32 @@ import itertools
 
 BBME_BLOCK_SIZE = 16
 MOTION_VECTOR_ERROR_THRESHOLD_PERCENTAGE = 0.3
+def parameter_matrix(parameters):
+    """Given a list of parameters, returns the matrix of the affine model.
 
+    Args:
+        parameters (np.ndarray): list of parameters of the affine model.
+
+    Returns:
+        np.ndarray: matrix of the affine model.
+    """
+    a0, a1, a2, b0, b1, b2 = parameters
+    return np.array([[a0, a1, a2], [b0, b1, b2], [0, 0, 1]], dtype=np.float32)
+def parameter_multiplication(parameters1, parameters2):
+    """Given two lists of parameters, returns the product of the two matrices.
+
+    Args:
+        parameters1 (np.ndarray): list of parameters of the affine model.
+        parameters2 (np.ndarray): list of parameters of the affine model.
+
+    Returns:
+        np.ndarray: product of the two matrices.
+    """
+    M1 = parameter_matrix(parameters1)
+    M2 = parameter_matrix(parameters2)
+    M = np.matmul(M1, M2)
+    output_parameters = M[:2, :].flatten()
+    return output_parameters
 
 def dense_motion_estimation(reference, current):
     """Given a couple of frames, estimates the dense motion field.
@@ -99,9 +124,11 @@ def affine_model(x, y, parameters):
     Returns:
         (tuple(int, int)): displacement of the pixel in position <x,y>.
     """
-    A = np.asarray([[1, x, y, 0, 0, 0], [0, 0, 0, 1, x, y]], dtype=np.int32)
-    tparameters = np.transpose(parameters)
-    d = np.matmul(A, tparameters)
+    M = parameter_matrix(parameters)
+    M = np.linalg.inv(M)
+    v = np.array([x, y, 1], dtype=np.float32)
+    d = np.matmul(M, v)
+    d = d[:2]
     return d
 
 
