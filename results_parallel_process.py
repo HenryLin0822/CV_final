@@ -130,8 +130,13 @@ def process_frame(hevc, frames, obj_map, save_path, psnr_dict):
         # Compensate camera motion on reference frame
         #compensated_l = motion.compensate_frame(reference_l , model_motion_field_l)
         #compensated_r = motion.compensate_frame(reference_r , model_motion_field_r)
-        compensated = motion.bi_compensate_frame(reference_l , model_motion_field_l, reference_r , model_motion_field_r)
-
+        if idx%2==0:
+            compensated = motion.bi_compensate_frame(reference_l , model_motion_field_l, reference_r , model_motion_field_r)
+        else:
+            compensated_l = motion.compensate_frame(reference_l , model_motion_field_l)
+            compensated_r = motion.compensate_frame(reference_r , model_motion_field_r)
+            compensated = 0.5*compensated_l+0.5*compensated_r
+ 
         idx_name = str(idx).zfill(3)
         mse_scores = calculate_block_mse(current , compensated)
         selected_blocks = select_top_blocks(mse_scores, 13000)

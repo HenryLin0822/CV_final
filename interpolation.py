@@ -21,20 +21,28 @@ def get_8_tap_filter_coefficients():
         [0, 1, -2, 4, 63, -3, 1, 0],# p = 15
     ]
 
-def interpolate_1_16(img, x, y, coeffs):
+def interpolate_1_16(img, x, y, coeffs= get_8_tap_filter_coefficients()):
     """Performs 1/16-pel interpolation using the 8-tap filter coefficients."""
     ix = int(x)
     iy = int(y)
-    fx = int((x - ix) * 16)  # Convert fractional part to index (0-15)
-    fy = int((y - iy) * 16)
+    dx = int((x - ix) * 16)  # Convert fractional part to index (0-15)
+    dy = int((y - iy) * 16)
 
-    value = 0.0
-    for m in range(-3, 5):
-        for n in range(-3, 5):
-            px = np.clip(ix + m, 0, img.shape[1] - 1)
-            py = np.clip(iy + n, 0, img.shape[0] - 1)
-            value += img[py, px] * coeffs[fy][m + 3] * coeffs[fx][n + 3]
+    ix = np.clip(ix, 0, img.shape[1] - 2)
+    iy = np.clip(iy, 0, img.shape[0] - 2)
 
+    # Get the values at the four surrounding points
+    top_left = img[iy, ix]
+    top_right = img[iy, ix + 1]
+    bottom_left = img[iy + 1, ix]
+    bottom_right = img[iy + 1, ix + 1]
+
+    # Perform bilinear interpolation
+    top = (1 - dx) * top_left + dx * top_right
+    bottom = (1 - dx) * bottom_left + dx * bottom_right
+    value = (1 - dy) * top + dy * bottom
+
+    # Apply the filter coefficients to the neighborhood
     return value
 
 def interpolate_image_1_16(img):

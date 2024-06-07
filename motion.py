@@ -1,5 +1,6 @@
 import multiprocessing
 from xmlrpc.client import MAXINT
+from interpolation import interpolate_1_16
 import numpy as np
 from utils import timer
 from utils import get_pyramids
@@ -366,6 +367,7 @@ def bi_compensate_frame(frame_l, motion_field_l, frame_r, motion_field_r):
                 a+=1
             a-=bs
             for _ in range(bs):
+                b=j*bs
                 for __ in range(bs):
                     try:
                         newa = a-d_r[X]
