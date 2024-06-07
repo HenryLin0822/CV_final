@@ -4,16 +4,13 @@ import numpy as np
 from PIL import Image
 import cv2
 
-def calculate_psnr_for_frame(so_img_path, so_txt_path, gt_img_path):
-    print('check image... ', so_img_path)
+def calculate_psnr_for_frame(compensated, current, so_txt_path):
     h,w=2160,3840
-    s= cv2.imread(so_img_path)
-    s = cv2.cvtColor(s, cv2.COLOR_BGR2GRAY)
+    s= compensated
     mid_h = s.shape[0] // 2 - h // 2
     mid_w = s.shape[1] // 2 - w // 2
     s = s[mid_h:mid_h+h, mid_w:mid_w+w]
-    g= cv2.imread(gt_img_path)
-    g = cv2.cvtColor(g, cv2.COLOR_BGR2GRAY)
+    g= current
     mid_h = g.shape[0] // 2 - h // 2
     mid_w = g.shape[1] // 2 - w // 2
     g = g[mid_h:mid_h+h, mid_w:mid_w+w]
@@ -25,7 +22,8 @@ def calculate_psnr_for_frame(so_img_path, so_txt_path, gt_img_path):
     f.close()
     # h=540, w=960
     mask = np.array(mask).astype(bool)
-    #assert np.sum(mask) == 13000, 'The number of selected blocks should be 13000'
+    
+    assert np.sum(mask) == 13000, 'The number of selected blocks should be 13000'
 
     s = s.reshape(h // 16, 16, w// 16, 16).swapaxes(1, 2).reshape(-1, 16, 16)
     g = g.reshape(h // 16, 16, w// 16, 16).swapaxes(1, 2).reshape(-1, 16, 16)
@@ -47,7 +45,7 @@ if __name__ == '__main__':
     parser.add_argument('-f', '--frame_index', type=int, required=True, help="Index of the frame to evaluate")
     args = parser.parse_args()
     frame_index= args.frame_index
-    so_path = f"./results/sel_map/s_{frame_index:03d}.txt"
+    so_path = f"./results/DaylightRoad2_27.yuv/sel_map/{frame_index:03d}.txt"
     gt_path = f"./results/DaylightRoad2_27.yuv/frames/{frame_index:03d}.png"
     frame_path= f'./results/DaylightRoad2_27.yuv/compensated/{frame_index:03d}.png'
     print(frame_path)
@@ -59,7 +57,10 @@ if __name__ == '__main__':
     so_txt_path = so_path
     gt_img_path = gt_path
 
-    psnr = calculate_psnr_for_frame(so_img_path, so_txt_path, gt_img_path)
+    so_img = cv2.imread(frame_path)
+    gt_img = cv2.imread(gt_path)
+
+    psnr = calculate_psnr_for_frame(so_img, gt_img, so_path)
 
     print(f'PSNR for frame {frame_index:03d}: {psnr:.5f}')
 

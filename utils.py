@@ -212,8 +212,7 @@ def hierarchical_b_structure():
         add_references(start, end, hierarchical_structure)
     for idx in predefined_skipped_frames:
         hierarchical_structure.append({'curr': idx, 'l': None, 'r': None, 't': 'I'})
-    print(hierarchical_structure)
-    hierarchical_structure.sort(key=lambda x: x['curr'])
+    ##hierarchical_structure.sort(key=lambda x: x['curr'])
     return hierarchical_structure
 
 
@@ -222,8 +221,32 @@ def convert_png_to_mp4(png_folder, output_file):
     subprocess.call(['ffmpeg', '-framerate', '5', '-i', f'{png_folder}/%03d.png', '-c:v', 'libx264', '-pix_fmt', 'yuv420p', output_file])
     ## %d ->%03d for file name 000 001 002...
 
+def read_object_map(directory_path='./img_seg/rgb_image/'):
+    directory = directory_path
+    file_matrices = {}
+    # Read all files in the directory
+    for filename in os.listdir(directory):
+        if filename.endswith('.txt'):
+            matrix = []
+            with open(os.path.join(directory, filename), 'r') as file:
+                for line in file:
+                    row = [int(x) for x in line.split()]
+                    matrix.append(row)
+            filename = int(filename[:3])
+        file_matrices[filename] = matrix
+    return file_matrices
 
-
+def cascade_affine(param1,param2):
+    param1 = np.array(param1)
+    param2 = np.array(param2)
+    A1=np.zeros((3,3))
+    A2=np.zeros((3,3))
+    A1[0:2]=param1.reshape(2,3)
+    A2[0:2]=param2.reshape(2,3)
+    A1[2,2]=1
+    A2[2,2]=1
+    A=A2@A1
+    return A[0:2].flatten()
 
 if __name__ == "__main__":
     # create_video_from_frames("./results/mat_inv_nastro3/bbme/", 75, "pan_nastro_3_bbme.avi", 5)

@@ -5,6 +5,7 @@ from utils import timer
 from utils import get_pyramids
 from bbme import get_motion_field
 import itertools
+import cv2
 
 BBME_BLOCK_SIZE = 16
 MOTION_VECTOR_ERROR_THRESHOLD_PERCENTAGE = 0.3
@@ -106,7 +107,7 @@ def affine_model(x, y, parameters):
 
 
 # @timer
-def global_motion_estimation(reference, current):
+def global_motion_estimation(reference, current, reference_obj):
     """Method to perform the global motion estimation.
     - uses affine model to model global motion
     - uses robust estimation removing outliers from global motion estimation
@@ -120,18 +121,19 @@ def global_motion_estimation(reference, current):
         np.ndarray: The list of parameters of the motion model that describes the global motion between reference and current.
     """
     # create the gaussian pyramids of the frames
+    reference_obj= np.array(reference_obj, dtype=np.uint8)
     prev_pyr = get_pyramids(reference)
+    prev_obj_pyr = get_pyramids(reference_obj)
     curr_pyr = get_pyramids(current)
     
     # first (coarse) level estimation
     parameters = np.zeros(shape=(6), dtype=np.float32)
     parameters = first_parameter_estimation(prev_pyr[0], curr_pyr[0])
 
-
     # all the other levels
     for i in range(1, len(prev_pyr)):
         parameters = parameter_projection(parameters)
-        parameters = best_affine_parameters_robust(prev_pyr[i], curr_pyr[i], parameters)
+        parameters = best_affine_parameters_robust(prev_pyr[i], curr_pyr[i], parameters, prev_obj_pyr[i])
 
     return parameters
 
@@ -207,7 +209,7 @@ def parameter_projection(parameters):
     return parameters
 
 
-def best_affine_parameters_robust(reference, current, old_parameters):
+def best_affine_parameters_robust(reference, current, old_parameters, reference_obj):
     """Robust version of the method to compute parameters for the affine model.
     1. estimates motion field with old parameters
     2. eliminates outliers
@@ -241,7 +243,11 @@ def best_affine_parameters_robust(reference, current, old_parameters):
     all_diffs.sort()
     threshold_index = int(MOTION_VECTOR_ERROR_THRESHOLD_PERCENTAGE*len(all_diffs))
     threshold_value = all_diffs[-threshold_index] # since sort in ascending order
-    outlier = diff>threshold_value
+    object_map = reference_obj != 0
+    ##outlier = (diff>threshold_value)+object_map[:diff.shape[0]][:diff.shape[1]]
+    outlier = object_map[:diff.shape[0]][:diff.shape[1]]
+    outlier = outlier != 0
+
     with open('outlier.txt', 'a') as file:
         for row in outlier:
             file.write(' '.join([str(int(val)) for val in row]) + '\n')
@@ -322,6 +328,63 @@ def compensate_frame(frame, motion_field):
                         pass
                     b += 1
                 a += 1
+
+    return compensated
+
+def bi_compensate_frame(frame_l, motion_field_l, frame_r, motion_field_r):
+    """Compute the compensated frame given the starting frame and the motion field. Assumes the motion field was computed on squared blocks.
+
+    Args:
+        frame (np.ndarray): frame to be compensated.
+        motion_field (np.ndarray): motion field.
+    
+    Returns:
+        np.ndarray: the compensated frame.
+    """
+    X = 1
+    Y = 0    
+    compensated = np.full_like(frame_l,-1)
+    # compute size of blocks
+    bs = frame_l.shape[0]//motion_field_l.shape[0]
+    for i in range(motion_field_l.shape[0]):
+        for j in range(motion_field_l.shape[1]):
+            a = i*bs
+            d_l = motion_field_l[i,j]
+            d_r = motion_field_r[i,j]
+            for _ in range(bs):
+                b = j*bs
+                for __ in range(bs):
+                    try:
+                        newa = a-d_l[X]
+                        newb = b-d_l[Y]
+                        assert newa > -1
+                        assert newb > -1
+                        compensated[a, b] = frame_l[newa, newb]
+                    except:
+                        pass
+                    b+=1
+                a+=1
+            a-=bs
+            for _ in range(bs):
+                for __ in range(bs):
+                    try:
+                        newa = a-d_r[X]
+                        newb = b-d_r[Y]
+                        assert newa > -1
+                        assert newb > -1
+                        if compensated[a,b] == -1:
+                            compensated[a, b] = frame_r[newa, newb]
+                    except:
+                        pass
+                    b += 1
+                a += 1
+
+    
+    mask = (compensated == -1)
+    x = np.arange(compensated.shape[1])
+    y = np.arange(compensated.shape[0])
+    x, y = np.meshgrid(x, y)
+    compensated = cv2.inpaint(compensated, mask.astype(np.uint8), 3, cv2.INPAINT_TELEA)
     return compensated
 
 

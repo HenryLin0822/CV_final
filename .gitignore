@@ -4,6 +4,7 @@
 /*.mp4
 /outlier.txt
 /src/*
-./result/*
-./DaylightRoad2_27.yuv
-./__pycache__/*
+/DaylightRoad2_27.yuv
+/__pycache__/*
+/solution/*
+/hdrnet/*
