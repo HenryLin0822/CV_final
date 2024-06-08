@@ -8,3 +8,4 @@
 /__pycache__/*
 /solution/*
 /hdrnet/*
+/frame_gt/*

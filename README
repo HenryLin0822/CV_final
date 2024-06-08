@@ -1,0 +1,10 @@
+Preprocess:
+1. create a new environment by python venv and make sure all the packages in requirements are well installed.
+2. transfer the video in ./resources/video to img, and put all the imgs into ./resources/frame.
+3. create the object detection map of all frames.
+4. run the command "python3 ./results_parallel_process.py -v test -f 0 " to run the code.
+5. as default, results_parallel_process.py will run the five frames parallelized in the same time, which can be modifyed by changing the max_workers to adequate numbers in results_parallel_process.py -162.
+5. the result will be saved in ./results/test/compensated/ for compensated img and ./results/test/sel_map/ for selection map.
+6. put all the compensated images and selection maps into one directory, which will be the final solution.
+7. run "python3 eval.py -s "solution_path" -g "ground_truth_path" to eval the solution and get the psnr score.
+ 

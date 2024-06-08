@@ -203,118 +203,13 @@ def main(args):
         print("frame shape: {}".format(frames[0].shape))
     except:
         raise Exception("Error reading video file: check the name of the video!")
-    
-        # idx = hevc['curr']
-        # print(idx, hevc['l'], hevc['r'])
-        # j = (idx + 1) / len(frames)
-        # print("[%-20s] %d/%d frames" % ("=" * int(20 * j), idx, len(frames)))
-        # # get reference, current and compensated
-        # if hevc['t'] =='I':
-        #     reference_l = frames[idx]
-        #     reference_r = frames[idx]
-        #     current = frames[idx]
-        #     compensated = frames[idx]
-        # else:
-        #     reference_l = frames[hevc['l']]
-        #     reference_l_obj = obj_map[hevc['l']]
-        #     reference_r = frames[hevc['r']]
-        #     reference_r_obj = obj_map[hevc['r']]
-        #     current = frames[idx]
-
-        #     params_l = motion.global_motion_estimation(reference_l, current, reference_l_obj)
-        #     # print(params_l)
-        #     params_r = motion.global_motion_estimation(reference_r, current, reference_r_obj)
-
-        #     model_motion_field_l = motion.get_motion_field_affine(
-        #         (int(current.shape[0] / motion.BBME_BLOCK_SIZE), int(current.shape[1] / motion.BBME_BLOCK_SIZE), 2), parameters=(params_l)
-        #     )
-        #     model_motion_field_r = motion.get_motion_field_affine(
-        #         (int(current.shape[0] / motion.BBME_BLOCK_SIZE), int(current.shape[1] / motion.BBME_BLOCK_SIZE), 2), parameters=(params_r)
-        #     )
-        #     if idx%2==0:
-        #         v1 = np.mean(np.abs(model_motion_field_l))
-        #         v2 = np.mean(np.abs(model_motion_field_r)) 
-        #         t = (hevc['r']-hevc['l'])/6
-        #         a=(v2-v1)/t
-        #         s = v1*t+0.5*a*t**2
-        #         s_d = v1*t/2+0.5*a*t**2/4
-        #         l_weight = 1 - s_d/s
-        #         r_weight = s_d/s
-        #         print(v1, v2, t, a, s, s_d, l_weight, r_weight)
-        #     else:
-        #         l_weight=0.5
-        #         r_weight=0.5
-
-
-        #     shape = (current.shape[0]//motion.BBME_BLOCK_SIZE, current.shape[1]//motion.BBME_BLOCK_SIZE)
-        #     # compensate camera motion on reference frame
-        #     compensated_l = motion.compensate_frame(reference_l, model_motion_field_l)
-        #     compensated_r = motion.compensate_frame(reference_r, model_motion_field_r)
-            
-        #     compensated = (compensated_l*l_weight +  compensated_r*r_weight).astype("uint8")
-        
-        #     idx_name=str(idx).zfill(3)
-        #     mse_scores=calculate_block_mse(current,compensated)
-        #     selected_blocks=select_top_blocks(mse_scores,int(current.shape[0]//16 *current.shape[1] //16*0.4))
-        #     save_block_mask(idx_name,selected_blocks,save_path+"sel_map",current.shape[0],current.shape[1])
-        #     diff_curr_prev = (
-        #         np.absolute(current.astype("int") - reference_l.astype("int"))
-        #     ).astype("uint8")
-        #     diff_curr_comp = (
-        #         np.absolute(current.astype("int") - compensated.astype("int"))
-        #     ).astype("uint8")
-        #     cv2.imwrite(
-        #         os.path.join(save_path, "curr_prev_diff", "")
-        #         + str(idx).zfill(3)
-        #         + ".png",
-        #         diff_curr_prev,
-        #     )
-        #     cv2.imwrite(
-        #         os.path.join(save_path, "curr_comp_diff", "")
-        #         + str(idx).zfill(3)
-        #         + ".png",
-        #         diff_curr_comp,
-        #     )
-
-        #     psnr = calculate_psnr_for_frame(compensated, current, os.path.join(save_path+"sel_map", f"{int(idx):03d}.txt"))
-        #     psnr_dict[idx_name] = str(psnr)
-        #     with open(save_path + "psnr_records.json", "w") as outfile:
-        #         dump(psnr_dict, outfile)
-
-        #     # save motion model motion field
-        #     '''
-        #     draw = draw_motion_field(current, model_motion_field)
-        #     cv2.imwrite(
-        #         os.path.join(save_path, "model_motion_field", "")
-        #         + str(idx).zfill(3)
-        #         + ".png",
-        #         draw,
-        #     )
-        #     '''
-
-
-        # idx_name = str(idx)
-        # # save frames
-        # cv2.imwrite(
-        #     os.path.join(save_path, "frames", "")
-        #     + str(idx).zfill(3)
-        #     + ".png",
-        #     current,
-        # )
-
-        # # save compensated
-        # cv2.imwrite(
-        #     os.path.join(save_path, "compensated", "")
-        #     + str(idx).zfill(3)
-        #     + ".png",
-        #     compensated,
-        # )
+    x
 
         # # save differences
     parallel_process_frames(hevc_b, frames, obj_map, save_path, psnr_dict)
           
-    convert_png_to_mp4(save_path+'/compensated', 'output.mp4')
-    convert_png_to_mp4(save_path+'/frames', 'gt_output.mp4')
+    # convert_png_to_mp4(save_path+'/compensated', 'output.mp4')
+    # convert_png_to_mp4(save_path+'/frames', 'gt_output.mp4')
      
 
 if __name__ == "__main__":
