@@ -19,7 +19,7 @@ so_path = args.so_path
 #mp_path = args.map_path
 
 image_name = ['%03d.png'% i for i in range(129) if i not in [0, 32, 64, 96, 128]]
-txt_name   = ['s_%03d.txt'% i for i in range(129) if i not in [0, 32, 64, 96, 128]]
+#txt_name   = ['s_%03d.txt'% i for i in range(129) if i not in [0, 32, 64, 96, 128]]
 so_img_paths = [os.path.join(so_path,name) for name in image_name]
 #so_txt_paths = [os.path.join(mp_path,name) for name in txt_name]
 

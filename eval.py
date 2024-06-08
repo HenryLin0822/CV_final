@@ -29,8 +29,8 @@ def benchmark(so_path, gt_path):
         assert np.sum(mask) == 13000, 'The number of selection blocks should be 13000'
 
 
-        s = s.reshape(2160//16, 16, 3840//16, 16).swapaxes(1, 2).reshape(-1, 16, 16)
-        g = g.reshape(2160//16, 16, 3840//16, 16).swapaxes(1, 2).reshape(-1, 16, 16)
+        s = s.reshape(2160//16, 16, 3840//16, 16).swapaxes(1, 2).reshape(-1, 16, 16).astype(int)
+        g = g.reshape(2160//16, 16, 3840//16, 16).swapaxes(1, 2).reshape(-1, 16, 16).astype(int)
         
         s = s[mask]
         g = g[mask]

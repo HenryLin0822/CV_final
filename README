@@ -2,11 +2,16 @@ Preprocess:
 1. create a new environment by python venv and make sure all the packages in requirements are well installed.
 2. transfer the video in ./resources/video to img, and put all the imgs into ./resources/frame.
 3. create the object detection map of all frames.
-4. run the command "python3 ./results_parallel_process.py -v test -f 0 " to run the code.
+    (Optional)If you want to reproduce the block mask by using object_detection. do the following.
+    3-1  cd img_seg
+    3-2  open another python venv and install the requirements packages using requirements.txt.
+    3-2  prepare the rgb images from the grayscale groun_truth frame and put it in ./rgb_image/
+    3-3  run python3 obj_detect.py -s ./rgb_image 
+4. run the command "python3 ./results_parallel_process.py -v test -f 0 " to run the code. (if any problem occurrs, please contact b11901071@ntu.edu.tw.If a process is killed please try adjust the number of workers as mentioned in 5. If the process is still killed we can provide a single process version, please contact us !)
 5. as default, results_parallel_process.py will run the five frames parallelized in the same time, which can be modifyed by changing the max_workers to adequate numbers in results_parallel_process.py -162.
-5. the result will be saved in ./results/test/compensated/ for compensated img and ./results/test/sel_map/ for selection map.
-6. put all the compensated images and selection maps into one directory, which will be the final solution.
-7. run "python3 eval.py -s "solution_path" -g "ground_truth_path" to eval the solution and get the psnr score.
+6. the result will be saved in ./results/test/compensated/ for compensated img and ./results/test/sel_map/ for selection map.
+7. put all the compensated images and selection maps into one directory, which will be the final solution.
+8. run "python3 eval.py -s "solution_path" -g "ground_truth_path" to eval the solution and get the psnr score.
 
 Compensated monochrome luma video location: ./video.yuv
  

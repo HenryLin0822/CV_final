@@ -1,5 +1,4 @@
 from cmath import log10, sqrt
-from tkinter import image_names
 import cv2
 import time
 import json
