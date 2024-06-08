@@ -203,7 +203,6 @@ def main(args):
         print("frame shape: {}".format(frames[0].shape))
     except:
         raise Exception("Error reading video file: check the name of the video!")
-    x
 
         # # save differences
     parallel_process_frames(hevc_b, frames, obj_map, save_path, psnr_dict)
