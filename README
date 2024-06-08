@@ -7,4 +7,6 @@ Preprocess:
 5. the result will be saved in ./results/test/compensated/ for compensated img and ./results/test/sel_map/ for selection map.
 6. put all the compensated images and selection maps into one directory, which will be the final solution.
 7. run "python3 eval.py -s "solution_path" -g "ground_truth_path" to eval the solution and get the psnr score.
+
+Compensated monochrome luma video location: ./video.yuv
  
